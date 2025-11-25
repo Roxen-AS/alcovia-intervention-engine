@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Focus Mode — Neon</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#05060b;
+      --card:#071028;
+      --neon1:#a855f7;
+      --neon2:#22d3ee;
+      --neon3:#22c55e;
+      --glass: rgba(255,255,255,0.03);
+    }
+    html,body{height:100%;margin:0;background:radial-gradient(ellipse at 10% 20%, #071025 0%, var(--bg) 40%, #000 100%);font-family: 'Rajdhani', system-ui, -apple-system, 'Segoe UI', Roboto, Arial;}
+    body::before {
+      content:"";
+      position:fixed;inset:0;
+      background:
+        radial-gradient(600px 200px at 90% 10%, rgba(168,85,247,0.06), transparent 10%),
+        radial-gradient(500px 150px at 20% 80%, rgba(34,211,238,0.04), transparent 10%),
+        linear-gradient(180deg, rgba(255,255,255,0.02), transparent 40%);
+      z-index:-3;
+      animation: bgFloat 12s linear infinite;
+    }
+    @keyframes bgFloat { from{transform:translateY(0)} to{transform:translateY(-20px)} }
+    body::after {
+      content:"";
+      position:fixed;inset:0;
+      background-image: linear-gradient(transparent 95%, rgba(168,85,247,0.03) 95%), linear-gradient(90deg, transparent 95%, rgba(34,211,238,0.02) 95%);
+      background-size: 28px 28px, 28px 28px;
+      z-index:-2;
+      animation: gridMove 18s linear infinite;
+      opacity:0.6;
+      mix-blend-mode:screen;
+    }
+    @keyframes gridMove { to{transform: translateY(28px)} }
+    .wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px;}
+    .card{width:420px;background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:16px;padding:22px;border:1px solid rgba(255,255,255,0.04);box-shadow: 0 20px 60px rgba(0,0,0,0.6);position:relative;overflow:hidden}
+    .card::before{content:"";position:absolute;inset:-50% -20%;background:conic-gradient(from 90deg,var(--neon2),transparent,var(--neon1));filter:blur(50px);opacity:0.18;transform:rotate(20deg);z-index:-1;animation:rotateGlow 10s linear infinite}
+    @keyframes rotateGlow{to{transform:rotate(380deg)}}
+    h1{font-family:'Orbitron', sans-serif;color:var(--neon2);margin:0;font-size:20px;text-shadow:0 0 12px rgba(34,211,238,0.25)}
+    .subtitle{color:rgba(226,232,240,0.6);font-size:13px;margin-bottom:12px}
+    .status{display:inline-block;padding:6px 10px;border-radius:999px;font-size:12px;background:rgba(255,255,255,0.02);color:var(--neon1);border:1px solid rgba(168,85,247,0.12);box-shadow:0 6px 20px rgba(168,85,247,0.06) inset}
+    label{display:block;color:rgba(226,232,240,0.75);font-size:13px;margin-top:12px}
+    input[type=number]{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:rgba(255,255,255,0.01);color:#e6f7ff;font-size:14px}
+    .row{display:flex;gap:8px;margin-top:12px}
+    .btn{flex:1;padding:10px;border-radius:999px;border:none;cursor:pointer;font-weight:600}
+    .primary{background:linear-gradient(90deg,var(--neon1),var(--neon2));color:#001;box-shadow:0 8px 30px rgba(168,85,247,0.16)}
+    .secondary{background:transparent;border:1px solid rgba(255,255,255,0.04);color:rgba(226,232,240,0.9)}
+    .task{margin-top:14px;padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px dashed rgba(255,255,255,0.03);color:rgba(226,232,240,0.9)}
+    .small{font-size:12px;color:rgba(226,232,240,0.6);margin-top:8px}
+    .locked-overlay{position:fixed;inset:0;background:linear-gradient(180deg, rgba(168,85,247,0.06), rgba(34,211,238,0.03));backdrop-filter: blur(6px);pointer-events:none;opacity:0;transition:opacity .4s;z-index:9}
+    .locked-overlay.show{opacity:1}
+    .cheat-badge{position:absolute;top:16px;right:16px;padding:6px 10px;border-radius:999px;font-weight:700;color:#111;background:linear-gradient(90deg,var(--neon3),#fff);box-shadow:0 6px 24px rgba(34,197,94,0.08)}
+    .footer{margin-top:12px;font-size:12px;color:rgba(226,232,240,0.6)}
+    .glow-text{color:var(--neon2);text-shadow:0 0 10px rgba(34,211,238,0.2)}
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <div class="locked-overlay" id="lockedOverlay"></div>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script>
+    const { useState, useEffect } = React;
+    const BACKEND = "REPLACE_WITH_BACKEND_URL";
+    const STUDENT_ID = "11111111-1111-1111-1111-111111111111";
+    function App(){
+      const [quiz, setQuiz] = useState(8);
+      const [focus, setFocus] = useState(65);
+      const [status, setStatus] = useState("On Track");
+      const [appState, setAppState] = useState("normal");
+      const [task, setTask] = useState("");
+      const [message, setMessage] = useState("");
+      const [inFocus, setInFocus] = useState(false);
+      const [cheated, setCheated] = useState(false);
+      useEffect(()=>{
+        fetch(BACKEND + "/student-state/" + STUDENT_ID).then(r=>r.json()).then(data=>{
+          if(data.status){
+            setStatus(data.status);
+            if(data.status==="Intervention Assigned"){ setAppState("remedial"); setTask(data.task||""); }
+            else if(data.status==="Needs Intervention"||data.status==="Locked"){ setAppState("locked"); }
+            else { setAppState("normal"); setTask(""); }
+          }
+        }).catch(()=>{});
+      },[]);
+      useEffect(()=>{
+        const socket = io(BACKEND);
+        socket.emit("join", STUDENT_ID);
+        socket.on("status_update", data=>{
+          setStatus(data.status);
+          if(data.status==="On Track"){ setAppState("normal"); setTask(""); setMessage("Back on track"); setCheated(false); document.getElementById("lockedOverlay").classList.remove("show"); }
+          else if(data.status==="Intervention Assigned"){ setAppState("remedial"); setTask(data.task||""); setMessage("Mentor assigned a task"); document.getElementById("lockedOverlay").classList.remove("show"); }
+          else { setAppState("locked"); setMessage("Waiting for mentor..."); document.getElementById("lockedOverlay").classList.add("show"); }
+        });
+        function handleVisibility(){ if(document.hidden && inFocus && appState==="normal"){ setCheated(true); setInFocus(false); setAppState("locked"); setStatus("Cheated"); setMessage("Focus failed: tab switch"); fetch(BACKEND + "/daily-checkin",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({student_id:STUDENT_ID,quiz_score:0,focus_minutes:0})}).catch(()=>{}); document.getElementById("lockedOverlay").classList.add("show"); } }
+        document.addEventListener("visibilitychange", handleVisibility);
+        return ()=>{ document.removeEventListener("visibilitychange", handleVisibility); socket.disconnect(); };
+      },[inFocus, appState]);
+      function submitCheckin(){ setMessage(""); fetch(BACKEND + "/daily-checkin",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({student_id:STUDENT_ID,quiz_score:Number(quiz),focus_minutes:Number(focus)})}).then(r=>r.json()).then(data=>{ if(data.status==="On Track"){ setStatus("On Track"); setAppState("normal"); setMessage("You are on track"); } else { setStatus("Needs Intervention"); setAppState("locked"); setMessage("Waiting for mentor"); document.getElementById("lockedOverlay").classList.add("show"); } }).catch(()=>{ setMessage("Network error"); }); }
+      function startFocus(){ if(appState!=="normal") return; setInFocus(true); setCheated(false); setMessage("Focus started — do not switch tabs"); }
+      function endAndSubmit(){ setInFocus(false); submitCheckin(); }
+      function markComplete(){ fetch(BACKEND + "/complete-intervention",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({student_id:STUDENT_ID})}).then(r=>r.json()).then(data=>{ if(data.status==="On Track"){ setStatus("On Track"); setAppState("normal"); setTask(""); setMessage("Completed — back to normal"); document.getElementById("lockedOverlay").classList.remove("show"); } }).catch(()=>{}); }
+      return React.createElement("div",{className:"wrap"},React.createElement("div",{className:"card"},
+        cheated?React.createElement("div",{className:"cheat-badge"},"CHEAT"):null,
+        React.createElement("h1",null,"FOCUS MODE"),
+        React.createElement("div",{className:"subtitle"},"Neon Intervention interface — product demo"),
+        React.createElement("div",{className:"status"},"Status: "+status),
+        appState==="normal" && React.createElement(React.Fragment,null,
+          React.createElement("label",null,"Today's quiz score (0-10)"),
+          React.createElement("input",{type:"number",min:0,max:10,value:quiz,onChange:e=>setQuiz(e.target.value)}),
+          React.createElement("label",null,"Focused minutes"),
+          React.createElement("input",{type:"number",min:0,value:focus,onChange:e=>setFocus(e.target.value)}),
+          React.createElement("div",{className:"row"},
+            React.createElement("button",{className:"btn primary",onClick:endAndSubmit},"Submit Check-in"),
+            React.createElement("button",{className:"btn secondary",onClick:startFocus},inFocus?"Focus running...":"Start Focus")
+          ),
+          React.createElement("div",{className:"small"},"Tip: Start Focus, then do not switch tabs. Switching triggers a fail.")
+        ),
+        appState==="locked" && React.createElement(React.Fragment,null,
+          React.createElement("div",{className:"task"},"Analysis in progress. Waiting for mentor..."),
+          React.createElement("div",{className:"small"},"Mentor approval required to unlock.")
+        ),
+        appState==="remedial" && React.createElement(React.Fragment,null,
+          React.createElement("div",{className:"task"},"Task: "+(task||"Read Chapter 4 and submit a 3-line summary.")),
+          React.createElement("div",{className:"row"},React.createElement("button",{className:"btn primary",onClick:markComplete},"Mark Task Complete"))
+        ),
+        message && React.createElement("div",{className:"footer glow-text"},message)
+      ));
+    }
+    ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+  </script>
+</body>
+</html>
