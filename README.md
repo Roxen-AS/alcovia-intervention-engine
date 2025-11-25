@@ -3,7 +3,7 @@
 Overview
 A closed-loop intervention prototype: Student web app → Node.js backend → Supabase (Postgres) → n8n human-in-loop automation. Real-time unlock via WebSockets and cheater detection (tab switch). Clean neon cyberpunk UI (demo).
 
-Live App: <PUT NETLIFY URL HERE>
+Live App: https://alcovia-intervention-engine.netlify.app/
 Backend: <PUT RENDER URL HERE>
 Repo: https://github.com/<your>/alcovia-intervention-engine
 
