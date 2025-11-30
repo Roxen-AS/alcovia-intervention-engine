@@ -5,7 +5,7 @@ A closed-loop intervention prototype: Student web app → Node.js backend → Su
 
 Live App: https://alcovia-intervention-engine.netlify.app/
 Backend: <PUT RENDER URL HERE>
-Repo: https://github.com/<your>/alcovia-intervention-engine
+Repo: https://github.com/Roxen-AS/alcovia-intervention-engine
 
 How it works
 1. Student submits daily check-in to /daily-checkin.
